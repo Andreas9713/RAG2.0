@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - 'privategpt-local/**'
+  pull_request:
+    paths:
+      - 'privategpt-local/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r privategpt-local/backend/requirements.txt
+          pip install -r privategpt-local/web/requirements.txt
+          pip install pyflakes pytest
+
+      - name: Lint (non-blocking)
+        run: |
+          cd privategpt-local
+          python -m pyflakes backend || true
+
+      - name: Run tests
+        run: |
+          cd privategpt-local
+          pytest -q
+
+      - name: Check required files
+        run: |
+          cd privategpt-local
+          test -f docker-compose.yml
+          test -f Makefile
+          test -f backend/app.py
+          test -f web/App.py

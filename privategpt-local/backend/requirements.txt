@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-community
+chromadb
+pydantic
+pypdf
+python-docx
+markdown
+sentence-transformers
+requests
