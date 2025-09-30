@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: privategpt-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: privategpt-chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ALLOW_RESET=TRUE
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./chroma:/chroma
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: privategpt-backend
+    env_file:
+      - .env
+    environment:
+      - API_TOKEN=${API_TOKEN}
+      - LLM_MODEL=${LLM_MODEL:-llama3.1}
+      - CHROMA_HOST=${CHROMA_HOST:-chroma}
+      - CHROMA_PORT=${CHROMA_PORT:-8000}
+    volumes:
+      - ./data:/data
+      - ./chroma:/app/chroma
+    depends_on:
+      ollama:
+        condition: service_started
+      chroma:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build: ./web
+    container_name: privategpt-web
+    env_file:
+      - .env
+    environment:
+      - API_TOKEN=${API_TOKEN}
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
