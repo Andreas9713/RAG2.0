@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:0.1.32
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    volumes:
+      - .:/app
+      - ./data:/data
+    depends_on:
+      - ollama
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    env_file: .env
+    volumes:
+      - .:/app
+      - ./data:/data
+    depends_on:
+      - backend
+    ports:
+      - "8501:8501"
+
+volumes:
+  ollama_data:
